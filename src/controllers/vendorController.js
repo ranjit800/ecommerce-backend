@@ -16,13 +16,29 @@ const generateSlug = (shopName) => {
 export const applyAsVendor = async (req, res) => {
   try {
     const {
+      // Step 1: Business Type & Category
+      businessType,
+      gstNumber,
+      panNumber,
+      primaryCategory,
+      
+      // Step 2: Store Details
       shopName,
+      displayName,
+      fullName,
       shopDescription,
+      signature,
+      
+      // Step 3: Address
       businessEmail,
       businessPhone,
       businessAddress,
-      gstNumber,
-      taxId,
+      
+      // Step 4: Bank Details
+      bankDetails,
+      
+      // Progress tracking
+      applicationProgress,
     } = req.body;
 
     // Check if user already has a vendor profile
@@ -35,43 +51,97 @@ export const applyAsVendor = async (req, res) => {
       });
     }
 
+    // Check if display name is already taken
+    if (displayName) {
+      const displayNameExists = await Vendor.findOne({ displayName });
+      if (displayNameExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Display name is already taken',
+        });
+      }
+    }
+
     // Check if shop name is already taken
-    const shopExists = await Vendor.findOne({ shopName });
-    if (shopExists) {
-      return res.status(400).json({
-        success: false,
-        message: 'Shop name is already taken',
-      });
+    if (shopName) {
+      const shopExists = await Vendor.findOne({ shopName });
+      if (shopExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Shop name is already taken',
+        });
+      }
     }
 
     // Determine currency based on country
     const country = businessAddress?.country || 'India';
     const currency = country === 'India' ? 'INR' : 'USD';
 
-    // Create vendor profile
+    // Calculate application progress percentage
+    let percentage = 0;
+    if (applicationProgress) {
+      const steps = [
+        applicationProgress.step1,
+        applicationProgress.step2,
+        applicationProgress.step3,
+        applicationProgress.step4,
+      ];
+      const completedSteps = steps.filter(step => step === true).length;
+      percentage = (completedSteps / 4) * 100;
+    }
+
+    // Create vendor profile with all new fields
     const vendor = await Vendor.create({
       user: req.user._id,
+      
+      // Business Type & Category (Step 1)
+      businessType: businessType || 'INDIVIDUAL',
+      gstNumber,
+      panNumber,
+      primaryCategory,
+      
+      // Store Details (Step 2)
       shopName,
+      displayName,
+      fullName,
       shopDescription,
+      signature,
+      
+      // Contact & Address (Step 3)
       businessEmail,
       businessPhone,
       businessAddress,
+      
+      // Currency
       currency,
-      gstNumber: country === 'India' ? gstNumber : undefined,
-      taxId: country === 'USA' ? taxId : undefined,
+      
+      // Bank Details (Step 4)
+      bankDetails,
+      
+      // Application Progress
+      applicationProgress: {
+        ...applicationProgress,
+        percentage,
+      },
+      
+      // Status
       approvalStatus: 'PENDING',
       commissionRate: process.env.DEFAULT_COMMISSION_RATE || 15,
     });
 
-    // Create shop profile with slug
-    const slug = generateSlug(shopName);
-    await Shop.create({
-      vendor: vendor._id,
-      slug,
-    });
+    // Create shop profile with slug (if display name provided)
+    if (displayName) {
+      const slug = displayName.toLowerCase(); // Already no spaces
+      await Shop.create({
+        vendor: vendor._id,
+        slug,
+      });
+    }
 
-    // Update user role to VENDOR
-    await User.findByIdAndUpdate(req.user._id, { role: 'VENDOR' });
+    // Update user role to VENDOR if not already
+    if (req.user.role !== 'VENDOR') {
+      await User.findByIdAndUpdate(req.user._id, { role: 'VENDOR' });
+    }
 
     res.status(201).json({
       success: true,
@@ -79,8 +149,10 @@ export const applyAsVendor = async (req, res) => {
       vendor: {
         _id: vendor._id,
         shopName: vendor.shopName,
+        displayName: vendor.displayName,
         approvalStatus: vendor.approvalStatus,
-        shopUrl: `/shop/${slug}`,
+        applicationProgress: vendor.applicationProgress,
+        shopUrl: displayName ? `/shop/${displayName.toLowerCase()}` : null,
       },
     });
   } catch (error) {

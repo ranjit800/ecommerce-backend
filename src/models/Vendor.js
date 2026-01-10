@@ -19,10 +19,31 @@ const vendorSchema = new mongoose.Schema(
       trim: true,
       unique: true,
     },
+    displayName: {
+      type: String,
+      trim: true,
+      unique: true,
+      // Store display name (no spaces allowed)
+      validate: {
+        validator: function(v) {
+          return !/\s/.test(v); // No spaces allowed
+        },
+        message: 'Display name cannot contain spaces',
+      },
+    },
+    fullName: {
+      type: String,
+      trim: true,
+      // Vendor's full legal name
+    },
     shopDescription: {
       type: String,
       required: [true, 'Shop description is required'],
       maxlength: [500, 'Description cannot exceed 500 characters'],
+    },
+    signature: {
+      type: String,
+      // Base64 encoded signature image
     },
     shopLogo: {
       type: String, // Cloudinary URL
@@ -43,10 +64,13 @@ const vendorSchema = new mongoose.Schema(
       trim: true,
     },
     businessAddress: {
-      street: String,
+      shopNo: String,
+      buildingNo: String,
+      addressLine: String, // Road name, area
+      landmark: String,
+      pinCode: String,
       city: String,
       state: String,
-      zipCode: String,
       country: {
         type: String,
         required: true,
@@ -62,10 +86,25 @@ const vendorSchema = new mongoose.Schema(
       default: 'INR',
     },
     // Tax Information (Country-specific)
+    businessType: {
+      type: String,
+      enum: ['INDIVIDUAL', 'COMPANY'],
+      default: 'INDIVIDUAL',
+    },
     gstNumber: {
       type: String,
       trim: true,
-      // For India - GST format validation can be added
+      // For India - GST format validation, required based on category
+    },
+    panNumber: {
+      type: String,
+      trim: true,
+      // PAN is always required for vendors
+    },
+    primaryCategory: {
+      type: String,
+      ref: 'Category',
+      // Main business category
     },
     taxId: {
       type: String,
@@ -133,6 +172,14 @@ const vendorSchema = new mongoose.Schema(
     approvedAt: {
       type: Date,
       default: null,
+    },
+    // Application Progress Tracking
+    applicationProgress: {
+      step1: { type: Boolean, default: false }, // Business Type & Category
+      step2: { type: Boolean, default: false }, // Store Details & Signature
+      step3: { type: Boolean, default: false }, // Address Details
+      step4: { type: Boolean, default: false }, // Bank Details
+      percentage: { type: Number, default: 0 }, // Overall completion %
     },
   },
   {

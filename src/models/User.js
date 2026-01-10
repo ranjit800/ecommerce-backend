@@ -38,6 +38,9 @@ const userSchema = new mongoose.Schema(
     mobile: {
       type: String,
       trim: true,
+      required: function() {
+        return this.role === 'VENDOR';
+      },
     },
     role: {
       type: String,
@@ -47,6 +50,20 @@ const userSchema = new mongoose.Schema(
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+    isMobileVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otp: {
+      mobile: {
+        code: String,
+        expiresAt: Date,
+      },
+      email: {
+        code: String,
+        expiresAt: Date,
+      },
     },
     addresses: [
       {
