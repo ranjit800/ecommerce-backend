@@ -179,10 +179,16 @@ export const getVendorOrders = async (req, res) => {
 
     // Get vendor profile
     const vendor = await Vendor.findOne({ user: req.user._id });
+    
+    // If vendor hasn't applied yet or doesn't have profile, return empty orders
     if (!vendor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Vendor profile not found',
+      return res.status(200).json({
+        success: true,
+        orders: [],
+        totalPages: 0,
+        currentPage: Number(page),
+        total: 0,
+        message: 'No vendor profile found. Please complete your vendor application first.',
       });
     }
 
@@ -205,6 +211,7 @@ export const getVendorOrders = async (req, res) => {
       total: count,
     });
   } catch (error) {
+    console.error('Get vendor orders error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch vendor orders',

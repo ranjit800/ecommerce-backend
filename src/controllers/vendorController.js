@@ -301,12 +301,25 @@ export const updateShopSettings = async (req, res) => {
       });
     }
 
-    const { socialMedia, policies, operatingHours } = req.body;
+    const {
+      socialMedia,
+      policies,
+      operatingHours,
+      // Store Builder Fields
+      storeDesign,
+      components,
+      advancedSections,
+      productFilters,
+      isPublished,
+    } = req.body;
 
     // Initialize nested objects if they don't exist
     if (!shop.socialMedia) shop.socialMedia = {};
     if (!shop.policies) shop.policies = {};
     if (!shop.operatingHours) shop.operatingHours = {};
+    if (!shop.storeDesign) shop.storeDesign = {};
+    if (!shop.components) shop.components = {};
+    if (!shop.productFilters) shop.productFilters = {};
 
     // Update nested objects
     if (socialMedia) {
@@ -316,7 +329,31 @@ export const updateShopSettings = async (req, res) => {
       shop.policies = { ...shop.policies.toObject(), ...policies };
     }
     if (operatingHours) {
-      shop.operatingHours = { ...shop.operatingHours.toObject(), ...operatingHours };
+      shop.operatingHours = {
+        ...shop.operatingHours.toObject(),
+        ...operatingHours,
+      };
+    }
+
+    if (isPublished !== undefined) {
+      shop.isPublished = isPublished;
+    }
+
+    // Update Store Builder Fields
+    if (storeDesign) {
+      shop.storeDesign = { ...shop.storeDesign.toObject(), ...storeDesign };
+    }
+    if (components) {
+      shop.components = { ...shop.components.toObject(), ...components };
+    }
+    if (productFilters) {
+      shop.productFilters = {
+        ...shop.productFilters.toObject(),
+        ...productFilters,
+      };
+    }
+    if (advancedSections) {
+      shop.advancedSections = advancedSections;
     }
 
     await shop.save();
